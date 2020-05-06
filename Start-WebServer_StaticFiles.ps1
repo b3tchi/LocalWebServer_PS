@@ -1,8 +1,22 @@
 ﻿#!/snap/bin/powershell
 
-$RootPath = "/home/jan/DevProjects/SvelteDnD/public"
+Import-Module ./AccessRunDb.ps1
+
+
+# $RootPath = "/home/jan/DevProjects/SvelteDnD/public"
+$RootPath = "C:\Users\czJaBeck\Documents\svelte-ie-template\public"
 # $RootPath = $Pwd
 
+
+#MS ACCESS FILE OPENING
+$scriptPath = $PSScriptRoot
+$scriptPath = Split-Path -Parent $PSCommandPath
+$dbName = "ApiDb.accdb"
+$dbFullPath= $scriptPath + "\" + $dbName
+
+$app = InitDb $dbFullPath
+
+#HTTP LISTENER PREPARATION
 $Hso = New-Object Net.HttpListener
 $Hso.Prefixes.Add("http://localhost:8001/")
 $Hso.Start()
@@ -45,7 +59,7 @@ try{
         }else{
           Write-Host "file not found"
         }
-        break
+      break
       }
 
       "POST"{
@@ -61,7 +75,8 @@ try{
           if ($RequestItem.ContentType){
 
             if($RECEIVED -eq "POST /query"){
-            # if($RECEIVED -eq "OPTIONS /query"){
+              # if($RECEIVED -eq "OPTIONS /query"){
+            
               # retrieve boundary marker for header separation
               # $BOUNDARY = $NULL
               # if ($RequestItem.ContentType -match "boundary=(.*);")
@@ -75,7 +90,12 @@ try{
               # { # only if header separator was found
 
               # read complete header (inkl. file data) into string
-              $READER = New-Object System.IO.StreamReader($RequestItem.InputStream, $REQUEST.ContentEncoding)
+              
+              $inputStream = $RequestItem.InputStream
+              $Encoding = $RequestItem.ContentEncoding
+              
+              
+              $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
               $DATA = $READER.ReadToEnd()
               $READER.Close()
               $RequestItem.InputStream.Close()
@@ -85,7 +105,7 @@ try{
               Write-Host $DATA
               # TODO Prepare response Script
               
-              $JSONRESPONSE = "[{""test"":""a""}]"
+              $JSONRESPONSE = AccessJSON $app "Test"
 
               $HRes.AddHeader("Content-Type","text/json")
               $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
@@ -98,13 +118,18 @@ try{
             }
           }
         }
-        break 
+      break 
       } 
     }
     $HRes.Close()
   }
 }finally{
-  Write-Host "Closed"
+  #Close Listener  
   $Hso.Stop()
   $Hso.Close()
+
+  #Close MS ACCESS
+  CloseDb $app 
+
+  Write-Host "Closed"
 }
