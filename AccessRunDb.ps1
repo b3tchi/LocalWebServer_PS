@@ -52,3 +52,14 @@ function AccessJSON($Access, $command) {
     return $output
 
 }
+function AccessCmd($Access, $command, $arguments) {
+
+    $output = $Access.Run($command, [ref] $arguments) #use [ref] for optinal COM parameters
+
+    # $myTestObject = $output | ConvertFrom-Json
+
+    # Write-Information $myTestObject
+
+    return $output
+
+}

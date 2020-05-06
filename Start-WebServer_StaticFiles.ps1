@@ -105,7 +105,8 @@ try{
               Write-Host $DATA
               # TODO Prepare response Script
               
-              $JSONRESPONSE = AccessJSON $app "Test"
+              # $JSONRESPONSE = AccessJSON $app "Test"
+              $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
               $HRes.AddHeader("Content-Type","text/json")
               $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
