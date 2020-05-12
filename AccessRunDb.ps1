@@ -19,6 +19,22 @@ function AccessRecordSet {
 
 
 }
+function ConnectDb($scriptPath) {
+
+    # Write-Information $scriptPath
+    
+    $Access = New-Object -ComObject Access.Application
+
+    $shelperPath = "C:\Users\czJaBeck\Documents\LocalWebServer_PS\shelper.accdb"
+    $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
+
+    $Access.Visible = -1
+
+    $output = $Access.Run("GetDb", [ref]$scriptPath) #use [ref] for optinal COM parameters
+    
+    return $Access
+
+}
 
 function InitDb($scriptPath) {
 
@@ -54,7 +70,7 @@ function AccessJSON($Access, $command) {
 }
 function AccessCmd($Access, $command, $arguments) {
 
-    $output = $Access.Run($command, [ref] $arguments) #use [ref] for optinal COM parameters
+    $output = $Access.Run($command, [ref]$arguments) #use [ref] for optinal COM parameters
 
     # $myTestObject = $output | ConvertFrom-Json
 

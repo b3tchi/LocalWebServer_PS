@@ -11,10 +11,11 @@ $RootPath = "C:\Users\czJaBeck\Documents\svelte-ie-template\public"
 #MS ACCESS FILE OPENING
 $scriptPath = $PSScriptRoot
 $scriptPath = Split-Path -Parent $PSCommandPath
-$dbName = "ApiDb.accdb"
+$dbName = "TestDb.accdb"
 $dbFullPath= $scriptPath + "\" + $dbName
 
-$app = InitDb $dbFullPath
+# $app = InitDb $dbFullPath
+$app = ConnectDb $dbFullPath
 
 #HTTP LISTENER PREPARATION
 $Hso = New-Object Net.HttpListener
