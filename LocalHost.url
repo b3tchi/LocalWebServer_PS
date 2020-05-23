@@ -2,4 +2,5 @@
 Prop3=19,2
 [InternetShortcut]
 IDList=
-URL=http://localhost:8001/public/index.html
+URL=http://localhost:8001/index.html
+HotKey=0

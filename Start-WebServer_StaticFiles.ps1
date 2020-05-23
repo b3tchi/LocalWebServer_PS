@@ -2,22 +2,22 @@
 
 Import-Module ./AccessRunDb.ps1
 
+##VARIABLES##
+# $htmlFilesPath = "/home/jan/DevProjects/SvelteDnD/public"
+# $htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte-ie-template\public"
+# $htmlFilesPath = $Pwd
+$htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte_Template_IE_XMLTest\public"
+$dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
 
-# $RootPath = "/home/jan/DevProjects/SvelteDnD/public"
-$RootPath = "C:\Users\czJaBeck\Documents\svelte-ie-template\public"
-# $RootPath = $Pwd
-
-
-#MS ACCESS FILE OPENING
+##MS ACCESS FILE OPENING##
 $scriptPath = $PSScriptRoot
 $scriptPath = Split-Path -Parent $PSCommandPath
-$dbName = "TestDb.accdb"
-$dbFullPath= $scriptPath + "\" + $dbName
+$shelperName = "shelper.accdb"
+$shelperPath = $scriptPath + "\" + $shelperName
 
-# $app = InitDb $dbFullPath
-$app = ConnectDb $dbFullPath
+$app = ConnectDb $dbFullPath $shelperPath
 
-#HTTP LISTENER PREPARATION
+##HTTP LISTENER PREPARATION##
 $Hso = New-Object Net.HttpListener
 $Hso.Prefixes.Add("http://localhost:8001/")
 $Hso.Start()
@@ -46,7 +46,7 @@ try{
     switch($RequestItem.httpMethod){
 
       "GET"{
-        $Path = (Join-Path $RootPath ($RequestItem).RawUrl)
+        $Path = (Join-Path $htmlFilesPath ($RequestItem).RawUrl)
         if($Path -like "*.css"){
           Write-Host "Css"
           $HRes.Headers.Add("Content-Type","text/css")
@@ -75,7 +75,68 @@ try{
           # check content type
           if ($RequestItem.ContentType){
 
+            if($RECEIVED -eq "POST /command"){
+              # read complete header (inkl. file data) into string
+              
+              $inputStream = $RequestItem.InputStream
+              $Encoding = $RequestItem.ContentEncoding
+              
+              $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
+              $DATA = $READER.ReadToEnd()
+              $READER.Close()
+              $RequestItem.InputStream.Close()
+
+              Write-Host "Request Data:"
+              Write-Host $DATA
+
+              $jsonQ = $DATA | ConvertFrom-Json
+              # TODO Prepare response Script
+              
+              $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.xmlbody
+              
+              # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
+
+              $HRes.AddHeader("Content-Type","text/json")
+              $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
+              $HRes.AddHeader("Server", "Powershell Webserver/1.2 on ")
+
+              # return HTML answer to caller
+              $BUFFER = [Text.Encoding]::UTF8.GetBytes($JSONRESPONSE )
+              $HRes.ContentLength64 = $BUFFER.Length
+              $HRes.OutputStream.Write($BUFFER, 0, $BUFFER.Length)
+            }
+
             if($RECEIVED -eq "POST /query"){
+              # read complete header (inkl. file data) into string
+              
+              $inputStream = $RequestItem.InputStream
+              $Encoding = $RequestItem.ContentEncoding
+              
+              $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
+              $DATA = $READER.ReadToEnd()
+              $READER.Close()
+              $RequestItem.InputStream.Close()
+
+              Write-Host "Request Data:"
+              Write-Host $DATA
+
+              $jsonQ = $DATA | ConvertFrom-Json
+              # TODO Prepare response Script
+              
+              $JSONRESPONSE = AccessJSON $app $jsonQ.name
+              # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
+
+              $HRes.AddHeader("Content-Type","text/json")
+              $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
+              $HRes.AddHeader("Server", "Powershell Webserver/1.2 on ")
+
+              # return HTML answer to caller
+              $BUFFER = [Text.Encoding]::UTF8.GetBytes($JSONRESPONSE )
+              $HRes.ContentLength64 = $BUFFER.Length
+              $HRes.OutputStream.Write($BUFFER, 0, $BUFFER.Length)
+            }
+
+            if($RECEIVED -eq "POST /action"){
               # if($RECEIVED -eq "OPTIONS /query"){
             
               # retrieve boundary marker for header separation

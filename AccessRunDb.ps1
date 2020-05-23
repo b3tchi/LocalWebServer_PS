@@ -17,19 +17,36 @@ function AccessRecordSet {
     #$rs.Close()
     #$db.Close()
 
-
 }
-function ConnectDb($scriptPath) {
+function GetApp($scriptPath, $shelperPath) {
 
     # Write-Information $scriptPath
     
     $Access = New-Object -ComObject Access.Application
 
-    $shelperPath = "C:\Users\czJaBeck\Documents\LocalWebServer_PS\shelper.accdb"
+    #just open to be sure that application had shelper openend
     $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
 
     $Access.Visible = -1
 
+    #connect to database using GetDb shelper function which is wrapper for GetObject
+    $TargetApp = $Access.Run("GetApp", [ref]$scriptPath) #use [ref] for optinal COM parameters
+    
+    return $TargetApp
+
+}
+function ConnectDb($scriptPath, $shelperPath) {
+
+    # Write-Information $scriptPath
+    
+    $Access = New-Object -ComObject Access.Application
+
+    #just open to be sure that application had shelper openend
+    $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
+
+    $Access.Visible = -1
+
+    #connect to database using GetDb shelper function which is wrapper for GetObject
     $output = $Access.Run("GetDb", [ref]$scriptPath) #use [ref] for optinal COM parameters
     
     return $Access
@@ -59,7 +76,7 @@ function CloseDb($Access) {
 
 function AccessJSON($Access, $command) {
 
-    $output = $Access.Run("DbJson", [ref]$command) #use [ref] for optinal COM parameters
+    $output = $Access.Run("DbJson", [ref]$command) #use [ref] for optional COM parameters
 
     # $myTestObject = $output | ConvertFrom-Json
 
@@ -70,7 +87,7 @@ function AccessJSON($Access, $command) {
 }
 function AccessCmd($Access, $command, $arguments) {
 
-    $output = $Access.Run($command, [ref]$arguments) #use [ref] for optinal COM parameters
+    $output = $Access.Run("DbCommand", [ref]$command, [ref]$arguments) #use [ref] for optinal COM parameters
 
     # $myTestObject = $output | ConvertFrom-Json
 
