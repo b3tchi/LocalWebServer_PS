@@ -9,26 +9,6 @@
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function CloseDb($Access) {
 
     $Access.Quit(2) 
