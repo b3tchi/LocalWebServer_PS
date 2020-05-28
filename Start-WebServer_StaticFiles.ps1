@@ -10,12 +10,14 @@ $htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte_Template_IE_XMLTest\pu
 $dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
 
 ##MS ACCESS FILE OPENING##
-$scriptPath = $PSScriptRoot
-$scriptPath = Split-Path -Parent $PSCommandPath
-$shelperName = "shelper.accdb"
-$shelperPath = $scriptPath + "\" + $shelperName
+# $scriptPath = $PSScriptRoot
+# $scriptPath = Split-Path -Parent $PSCommandPath
+# $shelperName = "shelper.accdb"
+# $shelperPath = $scriptPath + "\" + $shelperName
 
-$app = ConnectDb $dbFullPath $shelperPath
+# $app = ConnectDb $dbFullPath $shelperPath
+$app = GetApp $dbFullPath 
+# $db = $app.CurrentDb()
 
 ##HTTP LISTENER PREPARATION##
 $Hso = New-Object Net.HttpListener
@@ -92,7 +94,7 @@ try{
               $jsonQ = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
               
-              $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.xmlbody
+              $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.arguments
               
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
@@ -192,7 +194,7 @@ try{
   $Hso.Close()
 
   #Close MS ACCESS
-  CloseDb $app 
+  # CloseDb $app 
 
   Write-Host "Closed"
 }
