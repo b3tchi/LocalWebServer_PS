@@ -1,97 +1,32 @@
-﻿
-function AccessRecordSet {
-
-    #$db = $Access.OpenCurrentDatabase("C:\Users\czJaBeck\Onedrive - LEGO\Documents\Database74.accdb") # -ComObject Access.Application.Database
-
-    #$Access.Visible = $true
-
-    #$rs = $Access.Run("Test")
-
-    #$rs.MoveFirst()
-    #$rs.MoveLast()
-
-    #$rows = $rs.RecordCount()
-    #$output = $rs.GetRows($rows)
-
-
-    #$rs.Close()
-    #$db.Close()
-
-}
-function GetApp($scriptPath) {
+﻿function GetApp($scriptPath) {
 
     [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.VisualBasic")
-        # Write-Information $scriptPath
-    
-    # $Access = New-Object -ComObject Access.Application
 
-    #just open to be sure that application had shelper openend
-    # $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
-
-    # $Access.Visible = -1
-
-    #connect to database using GetDb shelper function which is wrapper for GetObject
     # $TargetApp = $Access.Run("GetApp", [ref]$scriptPath) #use [ref] for optinal COM parameters
     $TargetApp = [Microsoft.VisualBasic.Interaction]::GetObject($scriptPath) 
 
     return $TargetApp
 
-    # $db.close
-    # $Access.Quit
-
 }
 
-function GetApp_Old($scriptPath, $shelperPath) {
 
-    # Write-Information $scriptPath
-    
-    $Access = New-Object -ComObject Access.Application
 
-    #just open to be sure that application had shelper openend
-    $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
 
-    $Access.Visible = -1
 
-    #connect to database using GetDb shelper function which is wrapper for GetObject
-    $TargetApp = $Access.Run("GetApp", [ref]$scriptPath) #use [ref] for optinal COM parameters
-    
-    return $TargetApp
 
-    $db.close
-    $Access.Quit
 
-}
-function ConnectDb($scriptPath, $shelperPath) {
 
-    # Write-Information $scriptPath
-    
-    $Access = New-Object -ComObject Access.Application
 
-    #just open to be sure that application had shelper openend
-    $db = $Access.OpenCurrentDatabase($shelperPath) # -ComObject Access.Application.Database
 
-    $Access.Visible = -1
 
-    #connect to database using GetDb shelper function which is wrapper for GetObject
-    $output = $Access.Run("GetDb", [ref]$scriptPath) #use [ref] for optinal COM parameters
-    
-    return $Access
 
-}
 
-function InitDb($scriptPath) {
 
-    Write-Information $scriptPath
-    
-    $Access = New-Object -ComObject Access.Application
 
-    $db = $Access.OpenCurrentDatabase($scriptPath) # -ComObject Access.Application.Database
 
-    $Access.Visible = -1
 
-    return $Access
 
-}
+
 
 
 function CloseDb($Access) {
@@ -102,23 +37,34 @@ function CloseDb($Access) {
 
 function AccessJSON($Access, $command) {
 
-    $output = $Access.Run("DbJson", [ref]$command) #use [ref] for optional COM parameters
+    $rs = $Access.Run("QueryGet", [ref]$command) #use [ref] for optional COM parameters
 
-    # $myTestObject = $output | ConvertFrom-Json
+    $json = ConvertFromRs($rs) | ConvertTo-Json
 
     # Write-Information $myTestObject
 
-    return $output
+    return $json
 
 }
-function AccessCmd($Access, $command, $arguments) {
+function AccessCmd($app, $command, $arguments) {
 
-    $output = $Access.Run("DbCommand", [ref]$command, [ref]$arguments) #use [ref] for optinal COM parameters
+    $data = $arguments."data" #get first object in array
 
+    # Fill Json Data
+    $db = $app.CurrentDb()
+
+    foreach($item in $data){
+    
+        #SPLIT HERE TO FUNCTION
+        ConvertToRs $db $item
+
+    }
+    
+    $output = $app.Run("ExecCommand", [ref]$command) #use [ref] for optinal COM parameters
     # $myTestObject = $output | ConvertFrom-Json
-
     # Write-Information $myTestObject
 
+    #return output tbd
     return $output
 
 }
@@ -147,14 +93,22 @@ function ConvertToRs($db, $psO){
             # Access the name of the property
             # write-host $object_properties.Name
             # Access the value of the property
-            
-            $value = $field.Value
-            if($value.GetType().Name -eq 'String') {
-                $rs.Fields($field.Name).Value = "$value" #$strA
-            } else {
-                $rs.Fields($field.Name).Value = $value
+            try {
+                $rsfld = $rs.Fields($field.name)
+            }
+            catch {
+               $rsfld = $null 
+               write-host $field.name + " not found in $tablename" 
             }
             
+            if($null -ne $rsfld){
+                $value = $field.Value
+                if($value.GetType().Name -eq 'String') {
+                    $rs.Fields($field.Name).Value = "$value" #$strA
+                } else {
+                    $rs.Fields($field.Name).Value = $value
+                }
+            }
             # $fld = $rs.Fields($field.Name)
             # write-host $field.Name $field.Value $fld.Name
         }
@@ -166,9 +120,9 @@ function ConvertToRs($db, $psO){
 
 }
 
-function ConvertFromRs($db, $queryName){
+function ConvertFromRs($rs){
 
-    $rs = $db.OpenRecordset($queryName)
+    # $rs = $db.OpenRecordset($queryName)
     $rs.MoveLast()
     $rs.MoveFirst()
     # $rs.RecordCount
@@ -188,7 +142,7 @@ function ConvertFromRs($db, $queryName){
         $rs.MoveNext()
     }
 
-    $rs.Close()
+    # $rs.Close()
 
     return $data
 }

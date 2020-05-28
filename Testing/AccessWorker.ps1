@@ -4,10 +4,10 @@ Import-Module ./AccessRunDb.ps1
 # $scriptPath = Split-Path $psise.CurrentFile.FullPath #$Pwd.Path.ToString()
 $scriptPath = $PSScriptRoot
 $scriptPath = Split-Path -Parent $PSCommandPath
-$dbName = "ApiDb.accdb"
+$dbName = "Test.accdb"
 $dbFullPath= $scriptPath + "\" + $dbName
 
-$app = InitDb $dbFullPath
+$app = GetApp $dbFullPath
 
 $jsonR = AccessJSON $app "Test"
 
