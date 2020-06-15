@@ -16,35 +16,35 @@ $dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
 # $shelperPath = $scriptPath + "\" + $shelperName
 
 # $app = ConnectDb $dbFullPath $shelperPath
-$app = GetApp $dbFullPath 
+$app = GetApp $dbFullPath
 # $db = $app.CurrentDb()
 
 ##HTTP LISTENER PREPARATION##
 $Hso = New-Object Net.HttpListener
 $Hso.Prefixes.Add("http://localhost:8001/")
 $Hso.Start()
-# Register-EngineEvent PowerShell.Exiting –Action { 
+# Register-EngineEvent PowerShell.Exiting –Action {
 #     Write-Host "Close Event"
 # }
 try{
-	"$(Get-Date -Format s) Custom  Powershell webserver started."
+  Write-Host "$(Get-Date -Format s) Custom  Powershell webserver started."
   While ($Hso.IsListening) {
     $HC = $Hso.GetContext()
     $HRes = $HC.Response
     # Write-Output $HC.Request
     # $HRes.Headers.Add("Content-Type","text/plain")
     $RequestItem = $HC.Request
-    
+
     $RECEIVED = '{0} {1}' -f $RequestItem.httpMethod, $RequestItem.Url.LocalPath
-    Write-Host $RECEIVED  
+    Write-Host $RECEIVED
 
     # stop powershell webserver, nothing to do here
     if($RECEIVED -eq "GET /quit"){
-			"$(Get-Date -Format s) Stopping powershell webserver..."
+      Write-Host "$(Get-Date -Format s) Stopping powershell webserver..."
       $HRes.Close()
       break
     }
-    
+
     switch($RequestItem.httpMethod){
 
       "GET"{
@@ -79,10 +79,10 @@ try{
 
             if($RECEIVED -eq "POST /command"){
               # read complete header (inkl. file data) into string
-              
+
               $inputStream = $RequestItem.InputStream
               $Encoding = $RequestItem.ContentEncoding
-              
+
               $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
               $DATA = $READER.ReadToEnd()
               $READER.Close()
@@ -93,9 +93,9 @@ try{
 
               $jsonQ = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
-              
+
               $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.arguments
-              
+
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
               $HRes.AddHeader("Content-Type","text/json")
@@ -110,10 +110,10 @@ try{
 
             if($RECEIVED -eq "POST /query"){
               # read complete header (inkl. file data) into string
-              
+
               $inputStream = $RequestItem.InputStream
               $Encoding = $RequestItem.ContentEncoding
-              
+
               $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
               $DATA = $READER.ReadToEnd()
               $READER.Close()
@@ -124,7 +124,7 @@ try{
 
               $jsonQ = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
-              
+
               $JSONRESPONSE = AccessJSON $app $jsonQ.name
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
@@ -140,7 +140,7 @@ try{
 
             if($RECEIVED -eq "POST /action"){
               # if($RECEIVED -eq "OPTIONS /query"){
-            
+
               # retrieve boundary marker for header separation
               # $BOUNDARY = $NULL
               # if ($RequestItem.ContentType -match "boundary=(.*);")
@@ -154,11 +154,11 @@ try{
               # { # only if header separator was found
 
               # read complete header (inkl. file data) into string
-              
+
               $inputStream = $RequestItem.InputStream
               $Encoding = $RequestItem.ContentEncoding
-              
-              
+
+
               $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
               $DATA = $READER.ReadToEnd()
               $READER.Close()
@@ -168,7 +168,7 @@ try{
               Write-Host "Request Data:"
               Write-Host $DATA
               # TODO Prepare response Script
-              
+
               # $JSONRESPONSE = AccessJSON $app "Test"
               $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
@@ -183,18 +183,18 @@ try{
             }
           }
         }
-      break 
-      } 
+      break
+      }
     }
     $HRes.Close()
   }
 }finally{
-  #Close Listener  
+  #Close Listener
   $Hso.Stop()
   $Hso.Close()
 
   #Close MS ACCESS
-  # CloseDb $app 
+  # CloseDb $app
 
   Write-Host "Closed"
 }
