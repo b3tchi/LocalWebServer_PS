@@ -1,21 +1,12 @@
 ﻿#!/snap/bin/powershell
 
-Import-Module ./AccessRunDb.ps1
+Import-Module $PSScriptRoot/AccessRunDb.ps1
 
 ##VARIABLES##
-# $htmlFilesPath = "/home/jan/DevProjects/SvelteDnD/public"
-# $htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte-ie-template\public"
-# $htmlFilesPath = $Pwd
 $htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte_Template_IE_XMLTest\public"
 $dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
 
-##MS ACCESS FILE OPENING##
-# $scriptPath = $PSScriptRoot
-# $scriptPath = Split-Path -Parent $PSCommandPath
-# $shelperName = "shelper.accdb"
-# $shelperPath = $scriptPath + "\" + $shelperName
 
-# $app = ConnectDb $dbFullPath $shelperPath
 $app = GetApp $dbFullPath
 # $db = $app.CurrentDb()
 
@@ -48,6 +39,7 @@ try{
     switch($RequestItem.httpMethod){
 
       "GET"{
+
         $Path = (Join-Path $htmlFilesPath ($RequestItem).RawUrl)
         if($Path -like "*.css"){
           Write-Host "Css"
@@ -66,7 +58,7 @@ try{
       }
 
       "POST"{
-      # "OPTIONS"{
+        # "OPTIONS"{
         Write-Host "Post"
         # only if there is body data in the request
         if ($RequestItem.HasEntityBody){
@@ -95,6 +87,37 @@ try{
               # TODO Prepare response Script
 
               $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.arguments
+
+              # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
+
+              $HRes.AddHeader("Content-Type","text/json")
+              $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
+              $HRes.AddHeader("Server", "Powershell Webserver/1.2 on ")
+
+              # return HTML answer to caller
+              $BUFFER = [Text.Encoding]::UTF8.GetBytes($JSONRESPONSE )
+              $HRes.ContentLength64 = $BUFFER.Length
+              $HRes.OutputStream.Write($BUFFER, 0, $BUFFER.Length)
+            }
+
+            if($RECEIVED -eq "POST /transaction"){
+              # read complete header (inkl. file data) into string
+
+              $inputStream = $RequestItem.InputStream
+              $Encoding = $RequestItem.ContentEncoding
+
+              $READER = New-Object System.IO.StreamReader($inputStream, $Encoding)
+              $DATA = $READER.ReadToEnd()
+              $READER.Close()
+              $RequestItem.InputStream.Close()
+
+              Write-Host "Request Data:"
+              Write-Host $DATA
+
+              $jsonQ = $DATA | ConvertFrom-Json
+              # TODO Prepare response Script
+
+              $JSONRESPONSE = AccessTx $app $jsonQ.name $jsonQ.arguments
 
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 

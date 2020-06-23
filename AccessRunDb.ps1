@@ -13,14 +13,20 @@ function CloseDb($Access) {
 
 function AccessJSON($Access, $command) {
   $rs = $Access.Run("QueryGet", [ref]$command) #use [ref] for optional COM parameters
-  $json = ConvertFromRs($rs) | ConvertTo-Json
 
+  if($null -eq $rs){
+    $json = "" 
+  }else{
+    $json = ConvertFromRs($rs) | ConvertTo-Json
+  }
   # Write-Information $myTestObject
   return $json
 }
 
-function AccessCmd($app, $command, $arguments) {
+function AccessTx($app, $command, $arguments) {
   $data = $arguments."data" #get first object in array
+
+  #temp vars add
 
   # Fill Json Data
   $db = $app.CurrentDb()
@@ -32,6 +38,25 @@ function AccessCmd($app, $command, $arguments) {
   $output = $app.Run("ExecCommand", [ref]$command) #use [ref] for optinal COM parameters
   # $myTestObject = $output | ConvertFrom-Json
   # Write-Information $myTestObject
+
+  #return output tbd
+  return $output
+}
+
+function AccessCmd($app, $command, $arguments) {
+
+  # Fill Json Data
+  $db = $app.CurrentDb()
+
+  $qdf = $db.QueryDefs($command)
+  $pars = $qdf.Parameters
+
+  foreach ($par in $pars){
+    $parName = $par.Name
+    $par.Value = $arguments."$parName"
+  }
+
+  $qdf.Execute(512) #512 = dbSeeChanges
 
   #return output tbd
   return $output
@@ -95,7 +120,7 @@ function ConvertFromRs($rs) {
   $fldCount = $rs.Fields.Count
   $data = @()
   while ($rs.EOF -ne $true) {
-    $rec = @{ }
+    $rec = @{}
 
     for ($i = 0; $i -lt $fldCount; $i++) {
       $rec | Add-Member -NotePropertyName $rs.Fields($i).Name -NotePropertyValue $rs.Fields($i).Value
