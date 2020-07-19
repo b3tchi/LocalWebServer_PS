@@ -15,7 +15,7 @@ function AccessJSON($Access, $command) {
   $rs = $Access.Run("QueryGet", [ref]$command) #use [ref] for optional COM parameters
 
   if($null -eq $rs){
-    $json = "" 
+    $json = ""
   }else{
     $json = ConvertFromRs($rs) | ConvertTo-Json
   }
@@ -23,7 +23,7 @@ function AccessJSON($Access, $command) {
   return $json
 }
 
-function AccessTx($app, $command, $arguments) {
+function AccessProcedure($app, $command, $arguments) {
   $data = $arguments."data" #get first object in array
 
   #temp vars add
@@ -48,18 +48,49 @@ function AccessCmd($app, $command, $arguments) {
   # Fill Json Data
   $db = $app.CurrentDb()
 
+  # Write-Host $app.DBEngine.Errors.Count
+
   $qdf = $db.QueryDefs($command)
   $pars = $qdf.Parameters
 
+
   foreach ($par in $pars){
+
     $parName = $par.Name
-    $par.Value = $arguments."$parName"
+    [string]$parVal = "" #work only with string for parameter value ?
+    $parVal = $arguments."$parName"
+
+    # Write-Host $parName
+    # Write-Host $par.Type
+    # Write-Host $arguments."$parName"
+    # Write-Host $parVal.ToString() # | Get-TypeData
+
+    $par.Value = $parVal
+    # $par = $null
   }
 
-  $qdf.Execute(512) #512 = dbSeeChanges
+  $err = ""
+  $status = 0
+
+  try {
+    $qdf.Execute(128) #128 = dbFailOnError 512 = dbSeeChanges
+  }
+  catch {
+    $status = 500
+    $err = $app.DBEngine.Errors($app.DBEngine.Errors.Count - 1).Description
+  }
+
+  # Write-Host $db.RecordsAffected
+  $respHash = @{
+    RecordsAffected = $qdf.RecordsAffected
+    Status = "$status"
+    Error = "$err"
+  }
+
+  Write-Host $respHash
 
   #return output tbd
-  return $output
+  return $respHash
 }
 
 function ConvertToRs($db, $psO) {
