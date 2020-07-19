@@ -1,18 +1,18 @@
 ﻿#!/snap/bin/powershell
 
 Import-Module $PSScriptRoot/AccessRunDb.ps1
+Import-Module $PSScriptRoot/Config.ps1
 
 ##VARIABLES##
-$htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte_Template_IE_XMLTest\public"
-$dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
-
+# $htmlFilesPath = "C:\Users\czJaBeck\Documents\Vbox\svelte_Template_IE_XMLTest\public"
+# $dbFullPath= "C:\Users\czJaBeck\Documents\Vbox\LocalWeb_Ps\TestDb.accdb"
 
 $app = GetApp $dbFullPath
 # $db = $app.CurrentDb()
 
 ##HTTP LISTENER PREPARATION##
 $Hso = New-Object Net.HttpListener
-$Hso.Prefixes.Add("http://localhost:8001/")
+$Hso.Prefixes.Add("http://localhost:$srvPort/")
 $Hso.Start()
 # Register-EngineEvent PowerShell.Exiting –Action {
 #     Write-Host "Close Event"
@@ -86,10 +86,15 @@ try{
               $jsonQ = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
 
-              $JSONRESPONSE = AccessCmd $app $jsonQ.name $jsonQ.arguments
+              $resp = AccessCmd $app $jsonQ.name $jsonQ.arguments
 
-              # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
+              if ($resp.Status -eq 500){
+                $Hres.StatusCode = 500
+              }
 
+              $JSONRESPONSE = $resp | ConvertTo-Json
+
+              Write-Host $JSONRESPONSE
               $HRes.AddHeader("Content-Type","text/json")
               $HRes.AddHeader("Last-Modified", [DATETIME]::Now.ToString('r'))
               $HRes.AddHeader("Server", "Powershell Webserver/1.2 on ")
@@ -100,7 +105,7 @@ try{
               $HRes.OutputStream.Write($BUFFER, 0, $BUFFER.Length)
             }
 
-            if($RECEIVED -eq "POST /transaction"){
+            if($RECEIVED -eq "POST /procedure"){
               # read complete header (inkl. file data) into string
 
               $inputStream = $RequestItem.InputStream
@@ -117,7 +122,7 @@ try{
               $jsonQ = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
 
-              $JSONRESPONSE = AccessTx $app $jsonQ.name $jsonQ.arguments
+              $JSONRESPONSE = AccessProcedure $app $jsonQ.name $jsonQ.arguments
 
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
