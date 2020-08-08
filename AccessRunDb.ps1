@@ -167,3 +167,52 @@ function ConvertFromRs($rs) {
 
   return $data
 }
+
+function AppVbProj($app) {
+
+  #for access
+  return $app.VBE.VBProjects(1)
+}
+
+function CodeExport($vbproj, $CWD) {
+  $COMPONENT_TYPE_MODULE = 1
+  $COMPONENT_TYPE_CLASS = 2
+  $modules = $vbproj.VBComponents;
+  # $exportedModules = 0
+
+  # Write-Host $module.Type
+  foreach ($module in $modules) {
+
+    $moduleFilename = switch ($module.Type){
+      $COMPONENT_TYPE_MODULE { "src\Modules\$($module.Name).bas" }
+      $COMPONENT_TYPE_CLASS { "src\Classes\$($module.Name).cls" }
+      default { "" }
+    }
+
+    if ($moduleFilename -eq ""){
+      continue
+    }
+
+    $moduleDestination = [IO.Path]::Combine($CWD, $moduleFilename)
+    $module.Export($moduleDestination)
+    # $exportedModules += 1
+  }
+
+  #TODO decide if return exported pieces
+  #TODO file exitsts delete ?
+
+}
+
+function ModuleNameFromFile($moduleFile){
+  # $sln = Get-Content $PathToSolutionFile
+  $modrx = $moduleFile
+    `| Select-String ', ^Attribute VB_Name = "(.*)"$' -AllMatches
+    `| Foreach-Object {$_.Matches}
+    `| Foreach-Object {$_.Groups[1].Value}
+
+  return $modrx
+}
+
+function ModuleImport($vbproj, $moduleFile) {
+ 
+}
