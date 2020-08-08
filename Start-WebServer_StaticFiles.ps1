@@ -1,4 +1,4 @@
-﻿#!/snap/bin/powershell
+#!/snap/bin/powershell
 
 Import-Module $PSScriptRoot/AccessRunDb.ps1
 Import-Module $PSScriptRoot/Config.ps1
@@ -37,14 +37,18 @@ try{
     }
 
     switch($RequestItem.httpMethod){
-
       "GET"{
-
-        $Path = (Join-Path $htmlFilesPath ($RequestItem).RawUrl)
-        if($Path -like "*.css"){
+        $RequestedUrl = ($RequestItem).RawUrl
+        #masking for /
+        if($RequestedUrl -eq "/"){
+          $RequestedUrl = "/index.html"
+        }
+        #adjustment for css
+        if($RequestedUrl -like "*.css"){
           Write-Host "Css"
           $HRes.Headers.Add("Content-Type","text/css")
         }
+        $Path = (Join-Path $htmlFilesPath $RequestedUrl)
         Write-Host $Path
         if(Test-Path $Path -PathType Leaf){
           # Buf =Get-Content(Join-Path $Pwd ($HC.Request).RawUrl) -Raw
