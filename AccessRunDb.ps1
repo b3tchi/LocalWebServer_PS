@@ -23,7 +23,7 @@ function AccessJSON($Access, $command) {
   return $json
 }
 
-function AccessProcedure($app, $command, $arguments) {
+function AccessProcedure_old($app, $command, $arguments) {
   $data = $arguments."data" #get first object in array
 
   #temp vars add
@@ -41,6 +41,69 @@ function AccessProcedure($app, $command, $arguments) {
 
   #return output tbd
   return $output
+}
+
+function AccessProcedure($app, $pson){
+#   $json = @'
+# {
+#   "name":"p04_StageSequence"
+#   ,"arguments":{
+#     "StageID":"1"
+#     ,"04_StageSequence":[
+#       {"ItemID":1,"Sequence":1}
+#       ,{"ItemID":2,"Sequence":2}
+#     ]
+#   }
+# }
+# '@
+#
+#   $pson = $json | ConvertFrom-Json
+  # $app = GetApp $dbFullPath
+
+  $db = $app.CurrentDb()
+
+  # $pson.name
+  # $pson.arguments
+
+  $batchNr = ($pson.name).SubString(1,2)
+  $batchTable = $batchNr + "_Batch"
+
+  [int]$batchID = GetBatchID $db $batchTable
+  # $batchID
+
+  ## Open batch record
+  $rs = $db.OpenRecordset("SELECT TOP 1 * FROM $batchTable WHERE BatchID = $batchID")
+  $rs.Edit()
+
+  foreach($prop in $pson.arguments.PsObject.Properties){
+    # $prop.Name
+    if($prop.Value -is [array]) {
+
+      RsBatchTable $db $prop $batchID
+
+    }else{
+
+      RsEnterValue $rs $prop.Name $prop.Value
+      # $rs.fields($prop.Name).Value = $prop.Value
+    }
+  }
+
+  $rs.Update()
+  $rs.Close()
+
+  ## CALL VBA PROCEDURE
+  $respAr = $app.Run($pson.name, [ref]$batchID) #use [ref] for optional COM parameters
+
+  $respHash = @{
+    # RecordsAffected = "$respAr[0]"
+    Status = "$respAr[0]"
+    Error = "$respAr[1]"
+  }
+
+  # Write-Host $respHash
+
+  #return output tbd
+  return $respHash
 }
 
 function AccessCmd($app, $command, $arguments) {
@@ -93,6 +156,96 @@ function AccessCmd($app, $command, $arguments) {
   return $respHash
 }
 
+
+
+function GetBatchID($db, $tableName) {
+
+  $creationGUID = '{' + [guid]::NewGuid() + '}'
+
+  #InsertID
+  $rs = $db.OpenRecordset($tableName) #dynaset
+
+  $rs.AddNew()
+  $rs.Fields("CreationGUID").Value = $creationGUID
+  $rs.Update()
+  $rs.close()
+
+  #get ID
+  $rs = $db.OpenRecordset("SELECT * FROM $tableName WHERE CreationGUID = $creationGUID")
+
+  ##return value
+  Write-Output $rs.fields("BatchID").Value
+
+  $rs.close()
+
+}
+
+function RsBatchTable($db, $table, $batchID) {
+  # $itemprops = $psO.PsObject.Properties
+  # $table = $itemprops | Select-Object -First 1
+
+  $tableName = $table.Name
+  $records = $table.Value
+
+  #Open recordset
+  # $db.Execute("DELETE FROM $tableName")
+  $rs = $db.OpenRecordset($tableName)
+
+  foreach ($record in $records) {
+
+    # $tableName
+    $fields = $record.PsObject.Properties
+    # $fields = $fields | Get-Member -MemberType NoteProperty # | Select-Object -Property Name
+    # write-host ------
+    $rs.AddNew()
+
+    foreach ($field in $fields) {
+      # Access the name of the property
+      # write-host $object_properties.Name
+      # Access the value of the property
+
+      RsEnterValue $rs $field.Name $field.Value
+
+      # $fld = $rs.Fields($field.Name)
+      # write-host $field.Name $field.Value $fld.Name
+    }
+
+    RsEnterValue $rs "batchID" $batchID
+
+    $rs.Update()
+  }
+
+  $rs.close()
+}
+
+function RsEnterValue($rs, $fieldName, $fieldValue){
+
+  try {
+    $rsfld = $rs.Fields($fieldName)
+  }
+  catch {
+    $rsfld = $null
+    write-host $fieldName + " not found"
+  }
+
+  if ($null -ne $rsfld) {
+    # $fieldValue = $field.Value
+    # if ($fieldValue.GetType().Name -eq 'String') {
+      # $rs.Fields($fieldName).Value = "$fieldValue" #$strA
+    # }
+    # else {
+    # }
+    try{
+      # $rs.Fields($fieldName).Value = $fieldValue
+      $rs.Fields($fieldName).Value = "$fieldValue"
+    }
+    catch{
+      write-Host $error[0]
+      write-host "types not matching slot:" + $rs.Fields($fieldName).Value.GetType().Name + "in:" + $fieldValue.GetType().Name
+      write-host "name:" + $fieldName + " value:" $fieldValue
+    }
+  }
+}
 function ConvertToRs($db, $psO) {
   $itemprops = $psO.PsObject.Properties
   $table = $itemprops | Select-Object -First 1
@@ -203,16 +356,17 @@ function CodeExport($vbproj, $CWD) {
 
 }
 
-function ModuleNameFromFile($moduleFile){
-  # $sln = Get-Content $PathToSolutionFile
-  $modrx = $moduleFile
-    `| Select-String ', ^Attribute VB_Name = "(.*)"$' -AllMatches
-    `| Foreach-Object {$_.Matches}
-    `| Foreach-Object {$_.Groups[1].Value}
+function FirstStringByPatternFile($moduleFile, $rxPattern){
 
-  return $modrx
+  $rxMatches = $moduleFile `
+    | Select-String $rxPattern -AllMatches `
+    | Foreach-Object {$_.Matches}
+
+  $rxGroup = $rxMatches | Foreach-Object {$_.Groups[1].Value} | Select-Object -First 1
+
+  return $rxGroup
 }
 
 function ModuleImport($vbproj, $moduleFile) {
- 
+
 }

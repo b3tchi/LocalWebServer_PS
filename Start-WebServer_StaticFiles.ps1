@@ -1,4 +1,4 @@
-#!/snap/bin/powershell
+﻿#!/snap/bin/powershell
 
 Import-Module $PSScriptRoot/AccessRunDb.ps1
 Import-Module $PSScriptRoot/Config.ps1
@@ -123,11 +123,12 @@ try{
               Write-Host "Request Data:"
               Write-Host $DATA
 
-              $jsonQ = $DATA | ConvertFrom-Json
+              $pson = $DATA | ConvertFrom-Json
               # TODO Prepare response Script
 
-              $JSONRESPONSE = AccessProcedure $app $jsonQ.name $jsonQ.arguments
+              $resp = AccessProcedure $app $pson
 
+              $JSONRESPONSE = $resp | ConvertTo-Json
               # $JSONRESPONSE = AccessCmd $app "DbMsg" "Test Messagebox"
 
               $HRes.AddHeader("Content-Type","text/json")
