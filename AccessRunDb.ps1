@@ -1,4 +1,3 @@
-﻿
 function GetApp($scriptPath) {
   [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.VisualBasic")
 
@@ -247,7 +246,6 @@ function RsEnterValue($rs, $fieldName, $fieldValue){
     }
   }
 }
-
 function ConvertToRs($db, $psO) {
   $itemprops = $psO.PsObject.Properties
   $table = $itemprops | Select-Object -First 1
